@@ -175,6 +175,7 @@ sudo rm -rf /usr/src/nginx_unsecure_cookie_module
 sudo rm -rf /usr/src/echo-nginx-module
 rm -rf ~/build
 
+sudo systemctl start nginx
 
 
 
