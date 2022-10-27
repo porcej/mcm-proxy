@@ -1,0 +1,197 @@
+#
+#  NGINX Reverse Proxy Config for QRZ HTTPS to HTTP
+#  Author: Joe Porcelli (joe@kt3i.net)
+#  Last Modified: 2021 AUGUST 15
+#
+
+
+#################################################################
+#
+# Production Environment
+#
+#################################################################
+server {
+	listen 80;
+	server_name ~^(www\.)?(?<domain>.+)$;
+
+	location /{ 
+		proxy_pass          https://www.qrz.com;
+		proxy_set_header    Accept-Encoding "identity";
+		proxy_set_header    X-Real-IP  $remote_addr;
+		proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
+		proxy_set_header    X-Forwarded-Proto  http;
+		proxy_set_header    X-NginX-Proxy  true;
+		proxy_http_version  1.1;
+		proxy_cache_key     "$scheme$host$request_method$request_uri";
+		# proxy_cookie_domain qrz.com $host;
+		proxy_cookie_domain ~\.(.+)$ $host;
+		#proxy_cookie_domain hakuapp.com $host;
+#		unsecure_cookie     *;
+
+		sub_filter_types text/xml text/css text/javascript;
+
+		sub_filter_types    *;
+		sub_filter_once     off;
+
+		sub_filter          www.qrz.com $host;
+		sub_filter 			ajax.googleapis.com $host:8002/gapi;
+		sub_filter 			cdn.jsdelivr.net $host:8001/jsdelvr;
+		sub_filter 			static.qrz.com $host:8001/static;
+
+		sub_filter 			adservice.google.com $host:8002/gds;
+
+		sub_filter 			www.google-analytics.com $host:8002/ga;
+		sub_filter 			www.googletagmanager.com $host:8002/gtag;
+		sub_filter 			googleads.g.doubleclick.net $host:8002/pageads;
+		sub_filter 			www.googleadservices.com $host:8002/gads;
+		sub_filter 			tpc.googlesyndication.com $host:8002/gsyn_tpc;
+		sub_filter 			pagead2.googlesyndication.com $host:8002/gsyn_pa2;
+
+
+		sub_filter          s3.amazonaws.com $host:8002/s3;
+		sub_filter          fonts.googleapis.com $host:8002/gfonts;
+		sub_filter          v2.zopim.com $host:8002/zopim;
+		sub_filter          js-agent.newrelic.com $host:8002/nrdata;
+		sub_filter          bam.nr-data.net $host:8002/nrbam;
+
+		sub_filter          https http;
+		sub_filter          ws.pusherapp.com $host:8002/pusher;
+		sub_filter          sockjs.pusher.com $host:8002/pusherjs;
+		sub_filter          "wss_port=443," "wss_port=8002,";
+		sub_filter          "sockjs_https_port=443," "sockjs_https_port=8002,";
+		sub_filter          'hostEncrypted:t.wsHost+":"+t.wssPort' 'hostEncrypted:t.wsHost';
+		sub_filter          'hostUnencrypted:t.wsHost+":"+t.wsPort' 'hostUnencrypted:t.wsHost';
+	}
+}
+
+#################################################################
+#
+# Cloudflare protected hosts
+#
+#################################################################
+server {
+	listen 8001;
+	server_name ~^(www\.)?(?<domain>.+)$;
+
+	proxy_set_header X-Forwarded-Proto $scheme;
+
+	location /static {
+		rewrite /static/(.*) /$1  break;
+	    proxy_ssl_verify              off;
+		proxy_pass https://static.qrz.com;
+		proxy_ssl_server_name on;
+	    proxy_set_header X-Real-IP  $remote_addr;
+	    proxy_set_header Host-Real-IP  $http_host;
+	    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	    proxy_set_header X-Real-Pcol HTTP;
+	    proxy_intercept_errors on;
+	}
+
+	location /jsdelvr {
+		rewrite /jsdelvr/(.*) /$1  break;
+	    proxy_ssl_verify              off;
+		proxy_pass https://cdn.jsdelivr.net;
+		proxy_ssl_server_name on;
+	    proxy_set_header X-Real-IP  $remote_addr;
+	    proxy_set_header Host-Real-IP  $http_host;
+	    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	    proxy_set_header X-Real-Pcol HTTP;
+	    proxy_intercept_errors on;
+	}
+}
+
+#################################################################
+#
+# Google Resources 
+#
+#################################################################
+server {
+	listen 8002;
+	server_name ~^(www\.)?(?<domain>.+)$;
+
+	location /gapi {
+		rewrite /gapi/(.*) /$1  break;
+		proxy_pass https://ajax.googleapis.com;
+	}
+
+	location /gads {
+		rewrite /gads/(.*) /$1  break;
+		proxy_pass https://adservice.google.com;
+	}
+
+#	location /gsyn_pa2{
+#		rewrite /gsyn_pa2/(.*) /$1 break;
+#		proxy_pass https://pagead2.googlesyndication.com;
+#	}
+
+
+	location /nrdata {
+		# Secho "No browser monitoring for you.";
+		# proxy_pass https://js-agent.newrelic.com/;
+		# proxy_set_header    Accept-Encoding "";
+		# proxy_set_header    js-agent.newrelic.com;
+	}
+
+	location /nrbam {
+		# echo "No browser monitoring for you.";
+		# proxy_pass https://bam.nr-data.net/;
+		# proxy_set_header    Accept-Encoding "";
+		# proxy_set_header    bam.nr-data.net;
+	}
+
+	location /zopim {
+		# echo "No ZenDesk for you";
+		# proxy_pass          https://v2.zopim.com/;
+		# proxy_set_header    Accept-Encoding "";
+		# proxy_set_header    Host v2.zopim.com;
+	}
+	
+	location /s3 {
+		proxy_pass          https://s3.amazonaws.com/;
+		proxy_set_header    Accept-Encoding "";
+		proxy_set_header    Host s3.amazonaws.com;
+	}
+
+	location /gfonts {
+		# echo "No Google Fonts for you";
+		# proxy_pass_header Server;
+		# proxy_pass https://fonts.googleapis.com/;
+		# proxy_set_header Host fonts.googleapis.com;
+		# proxy_set_header Accept-Encoding "";
+		# proxy_redirect off;
+		# proxy_set_header X-Real-IP $remote_addr;
+		# proxy_set_header X-Scheme $scheme;
+
+		# sub_filter_types    *;
+		# sub_filter_once     off;
+		# sub_filter          https://fonts.gstatic.com http://$host/gsfonts;
+	}
+
+	location /gsfonts {
+		# echo "Still no google fonts for you";
+		# proxy_pass          https://fonts.gstatic.com/;
+		# proxy_set_header    Host fonts.gstatic.com;
+		# proxy_set_header    Accept-Encoding "";
+	}
+
+	location /pusher {
+		# echo "No Websockets for you";
+		# proxy_pass          https://ws.pusherapp.com;
+		# proxy_http_version  1.1;
+		# proxy_set_header    Upgrade $http_upgrade;
+		# proxy_set_header    Connection "Upgrade";
+		# proxy_set_header    Host ws.pusherapp.com;
+		# proxy_cookie_domain pusher.com $host;
+	}
+
+	location /pusherjs {
+		# echo "No WebsocketsJS for you";
+		# proxy_pass          https://sockjs.pusher.com;
+		# proxy_set_header    Host sockjs.pusher.com;
+		# proxy_http_version  1.1;
+		# proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+		# proxy_set_header    Upgrade $http_upgrade;
+		# proxy_set_header    Connection "Upgrade";
+		# proxy_cookie_domain pusher.com $host;
+	}
+}

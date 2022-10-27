@@ -1,0 +1,171 @@
+#
+#  NGINX Reverse Proxy Config for MCM 19 PCR App
+#  Author: Joe Porcelli (joe@kt3i.net)
+#  Last Modified: October 20, 2019
+#
+
+
+#################################################################
+#
+# Production Environment
+#
+#################################################################
+server {
+	listen 80;
+	server_name ~^(www\.)?(?<domain>.+)$;
+
+	location /manage {
+		proxy_pass          https://manage.hakuapp.com/;
+		# proxy_redirect      ~*^https://([^\.]+)\.hakuapp\.com/ http://$host/$1/;
+		proxy_redirect      https://manage.hakuapp.com/ http://$host/manage/;
+		proxy_redirect      https://organizer.hakuapp.com/ http://$host/;
+		proxy_set_header    Accept-Encoding "";
+		proxy_set_header    Host manage.hakuapp.com;
+		proxy_set_header    X-Real-IP  $remote_addr;
+		proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
+		proxy_set_header    X-Forwarded-Proto  http;
+		proxy_set_header    X-NginX-Proxy  true;
+		proxy_http_version  1.1;
+		proxy_cache_key     "$scheme$host$request_method$request_uri";
+		proxy_cookie_domain manage.hakuapp.com $host;
+		proxy_cookie_domain hakuapp.com $host;
+		unsecure_cookie     *;
+
+		sub_filter_types    *;
+		sub_filter_once     off;
+
+		sub_filter          manage.hakuapp.com $host;
+		sub_filter          organizer.hakuapp.com $host;
+		sub_filter          s3.amazonaws.com $host:8001/s3;
+		sub_filter          fonts.googleapis.com http://$host:8001/gfonts;
+		sub_filter          v2.zopim.com $host:8001/zopim;
+		sub_filter          js-agent.newrelic.com $host:8001/nrdata;
+		sub_filter          bam.nr-data.net $host:8001/nrbam;
+		sub_filter          /auth/identity/callback '/manage/auth/identity/callback';
+		sub_filter          https http;
+		sub_filter          href="/ href="/manage/;
+		sub_filter          src="/ src="/manage/;
+		sub_filter          value="/images/ value="/manage/images/;
+		sub_filter          'url("/fonts/' 'url("/manage/fonts/';
+		sub_filter          'url("/assets/' 'url("/manage/assets/';
+		sub_filter          'url("/images/' 'url("/manage/images/';
+	}
+
+	location /{ 
+		proxy_pass          https://organizer.hakuapp.com/;
+		# proxy_redirect      ~*^https://([^\.]+)\.hakuapp\.com/ http://$host/$1/;
+		proxy_redirect      https://manage.hakuapp.com/ http://$host/manage/;
+		proxy_redirect      https://organizer.hakuapp.com/ http://$host/;
+		proxy_set_header    Accept-Encoding "";
+		proxy_set_header    Host organizer.hakuapp.com;
+		proxy_set_header    X-Real-IP  $remote_addr;
+		proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
+		proxy_set_header    X-Forwarded-Proto  http;
+		proxy_set_header    X-NginX-Proxy  true;
+		proxy_http_version  1.1;
+		proxy_cache_key     "$scheme$host$request_method$request_uri";
+		proxy_cookie_domain organizer.hakuapp.com $host;
+		proxy_cookie_domain hakuapp.com $host;
+		unsecure_cookie     *;
+
+		sub_filter_types    *;
+		sub_filter_once     off;
+
+		sub_filter          manage.hakuapp.com $host;
+		sub_filter          organizer.hakuapp.com $host;
+		sub_filter          s3.amazonaws.com $host:8001/s3;
+		sub_filter          fonts.googleapis.com $host:8001/gfonts;
+		sub_filter          v2.zopim.com $host:8001/zopim;
+		sub_filter          js-agent.newrelic.com $host:8001/nrdata;
+		sub_filter          bam.nr-data.net $host:8001/nrbam;
+
+		sub_filter          https http;
+		sub_filter          ws.pusherapp.com $host:8001/pusher;
+		sub_filter          sockjs.pusher.com $host:8001/pusherjs;
+		sub_filter          "wss_port=443," "wss_port=8001,";
+		sub_filter          "sockjs_https_port=443," "sockjs_https_port=8001,";
+		sub_filter          'hostEncrypted:t.wsHost+":"+t.wssPort' 'hostEncrypted:t.wsHost';
+		sub_filter          'hostUnencrypted:t.wsHost+":"+t.wsPort' 'hostUnencrypted:t.wsHost';
+	}
+}
+
+#################################################################
+#
+# External Resources (Both Prod and Stage)
+#
+#################################################################
+server {
+	listen 8001;
+	server_name ~^(www\.)?(?<domain>.+)$;
+
+
+	location /nrdata {
+		echo "No browser monitoring for you.";
+		# proxy_pass https://js-agent.newrelic.com/;
+		# proxy_set_header    Accept-Encoding "";
+		# proxy_set_header    js-agent.newrelic.com;
+	}
+
+	location /nrbam {
+		echo "No browser monitoring for you.";
+		# proxy_pass https://bam.nr-data.net/;
+		# proxy_set_header    Accept-Encoding "";
+		# proxy_set_header    bam.nr-data.net;
+	}
+
+	location /zopim {
+		echo "No ZenDesk for you";
+		# proxy_pass          https://v2.zopim.com/;
+		# proxy_set_header    Accept-Encoding "";
+		# proxy_set_header    Host v2.zopim.com;
+	}
+	
+	location /s3 {
+		proxy_pass          https://s3.amazonaws.com/;
+		proxy_set_header    Accept-Encoding "";
+		proxy_set_header    Host s3.amazonaws.com;
+	}
+
+	location /gfonts {
+		echo "No Google Fonts for you";
+		# proxy_pass_header Server;
+		# proxy_pass https://fonts.googleapis.com/;
+		# proxy_set_header Host fonts.googleapis.com;
+		# proxy_set_header Accept-Encoding "";
+		# proxy_redirect off;
+		# proxy_set_header X-Real-IP $remote_addr;
+		# proxy_set_header X-Scheme $scheme;
+
+		# sub_filter_types    *;
+		# sub_filter_once     off;
+		# sub_filter          https://fonts.gstatic.com http://$host/gsfonts;
+	}
+
+	location /gsfonts {
+		echo "Still no google fonts for you";
+		# proxy_pass          https://fonts.gstatic.com/;
+		# proxy_set_header    Host fonts.gstatic.com;
+		# proxy_set_header    Accept-Encoding "";
+	}
+
+	location /pusher {
+		echo "No Websockets for you";
+		# proxy_pass          https://ws.pusherapp.com;
+		# proxy_http_version  1.1;
+		# proxy_set_header    Upgrade $http_upgrade;
+		# proxy_set_header    Connection "Upgrade";
+		# proxy_set_header    Host ws.pusherapp.com;
+		# proxy_cookie_domain pusher.com $host;
+	}
+
+	location /pusherjs {
+		echo "No WebsocketsJS for you";
+		# proxy_pass          https://sockjs.pusher.com;
+		# proxy_set_header    Host sockjs.pusher.com;
+		# proxy_http_version  1.1;
+		# proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+		# proxy_set_header    Upgrade $http_upgrade;
+		# proxy_set_header    Connection "Upgrade";
+		# proxy_cookie_domain pusher.com $host;
+	}
+}
