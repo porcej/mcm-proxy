@@ -165,7 +165,7 @@ EOT
 
 
 cd ${BASE_PATH}
-cd ./config
+cd config
 sudo cp * /etc/nginx/sites-available
 
 sudo ln -s /etc/nginx/sites-available/mcm-prd /etc/nginx/sites-enabled/mcm-prd
