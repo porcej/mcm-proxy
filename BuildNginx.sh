@@ -165,7 +165,7 @@ EOT
 
 
 cd ${BASE_PATH}
-cd ./config
+cd config
 sudo cp * /etc/nginx/sites-available
 
 sudo ln -s /etc/nginx/sites-available/mcm-prd /etc/nginx/sites-enabled/mcm-prd
@@ -175,6 +175,7 @@ sudo rm -rf /usr/src/nginx_unsecure_cookie_module
 sudo rm -rf /usr/src/echo-nginx-module
 rm -rf ~/build
 
+sudo systemctl start nginx
 
 
 
