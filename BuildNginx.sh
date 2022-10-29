@@ -159,7 +159,7 @@ http {
             index  index.html index.htm;
         }
     }
-    include /etc/nginx/sites-available/*;
+    include /etc/nginx/sites-enabled/*;
 }
 EOT
 
