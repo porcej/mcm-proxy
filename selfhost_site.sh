@@ -9,6 +9,8 @@ sudo cp config/mcm-prd-local /etc/nginx/sites-available/mcm-prd-local
 sudo rm  /etc/nginx/sites-enabled/*
 sudo ln -s /etc/nginx/sites-available/mcm-prd-local /etc/nginx/sites-enabled/mcm-prd-local
 
+sudo systemctl start nginx
+
 
 python scrape.py
 
