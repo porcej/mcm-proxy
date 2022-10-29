@@ -6,7 +6,7 @@ sudo nginx -s stop
 
 sudo cp config/mcm-prd-local /etc/nginx/sites-available/mcm-prd-local
 
-sudo rm -rf /etc/nginx/sites-enabled
+sudo rm  /etc/nginx/sites-enabled/*
 sudo ln -s /etc/nginx/sites-available/mcm-prd-local /etc/nginx/sites-enabled/mcm-prd-local
 
 
